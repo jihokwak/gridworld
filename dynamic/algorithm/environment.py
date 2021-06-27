@@ -95,10 +95,9 @@ class GraphicDisplay(tk.Tk):
 
             for i in self.arrows:
                 self.canvas.delete(i)
-            self.agent.value_table = [[0.0] * WIDTH for _ in range(HEIGHT)]
-            self.agent.policy_table = ([[[0.25, 0.25, 0.25, 0.25]] * WIDTH
-                                        for _ in range(HEIGHT)])
-            self.agent.policy_table[2][2] = []
+            self.agent.value_table = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
+            self.agent.policy_table = np.ones((HEIGHT, WIDTH, 4), dtype=np.float32) * 0.25
+            self.agent.policy_table[2][2] = None
             x, y = self.canvas.coords(self.rectangle)
             self.canvas.move(self.rectangle, UNIT / 2 - x, UNIT / 2 - y)
 
@@ -149,9 +148,8 @@ class GraphicDisplay(tk.Tk):
             self.canvas.move(self.rectangle, UNIT / 2 - x, UNIT / 2 - y)
 
             x, y = self.find_rectangle()
-            while len(self.agent.policy_table[x][y]) != 0:
-                self.after(100,
-                           self.rectangle_move(self.agent.get_action([x, y])))
+            while not np.isnan(self.agent.policy_table[x, y]).sum() :
+                self.after(100, self.rectangle_move(self.agent.get_action([x, y])))
                 x, y = self.find_rectangle()
             self.is_moving = 0
 

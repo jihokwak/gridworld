@@ -27,7 +27,7 @@ class PolicyIteration :
                 next_value = self.get_value(next_state)
                 value += self.get_policy(state)[action] * (reward + self.discount_factor * next_value)
 
-            next_value_table[state[0], state[1]] = round(value, 2)
+            next_value_table[state[0], state[1]] = value
 
         self.value_table = next_value_table
 
@@ -38,8 +38,7 @@ class PolicyIteration :
             if state == [2,2] :
                 continue
 
-            value = - 99999
-            max_index = []
+            value_list = []
             # 반환할 정책 초기화
             result = np.zeros(4, dtype=np.float32)
 
@@ -48,20 +47,16 @@ class PolicyIteration :
                 next_state = self.env.state_after_action(state, action)
                 reward = self.env.get_reward(state, action)
                 next_value = self.get_value(next_state)
-                temp = reward + self.discount_factor * next_value
+                value = reward + self.discount_factor * next_value
+                value_list.append(value)
 
                 # 받을 보상이 최대인 행동의 인덱스(최대가 복수라면 모두)를 추출
-                if temp == value :
-                    max_index.append(index)
-                elif temp > value :
-                    value = temp
-                    max_index.clear()
-                    max_index.append(index)
+                max_idx_list = np.argwhere(value_list == np.amax(value_list))
+                max_idx_list = max_idx_list.flatten().tolist()
+                prob = 1 / len(max_idx_list)
 
-            # 행동의 확률 계산
-            prob = 1 / len(max_index)
-            for index in max_index :
-                result[index] = prob
+            for idx in max_idx_list :
+                result[idx] = prob
 
             next_policy[state[0], state[1]] = result
 
@@ -69,26 +64,17 @@ class PolicyIteration :
 
     # 특정 상태에서 정책에 따른 행동을 반환
     def get_action(self, state):
-        # 0-1 사이의 값을 무작위로 추출
-        random_pick = np.random.rand()
         policy = self.get_policy(state)
-        policy_sum = 0.0
-        # 정책에 담긴 행동 중에 무작위로 한 행동을 추출
-        for index, value in enumerate(policy) :
-            policy_sum += value
-            if random_pick < policy_sum :
-                return index
+        return np.random.choice(4, 1, p=policy)[0]
 
     # 상태에 따른 정책 반환
     def get_policy(self, state):
-        if state == [2,2]:
-            return 0.0
-        return  self.policy_table[state[0], state[1]]
+        return self.policy_table[state[0], state[1]]
 
     # 가치함수의 값을 반환
     def get_value(self, state):
         # 소수점 둘째 자리까지만 계산
-        return round(self.value_table[state[0], state[1]], 2)
+        return self.value_table[state[0], state[1]]
 
 if __name__ == '__main__':
     env = Env()
