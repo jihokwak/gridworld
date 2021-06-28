@@ -1,67 +1,60 @@
 import tkinter as tk
-from tkinter import Button
 import time
-import numpy as np
 import os
+import numpy as np
+import random
 from PIL import ImageTk, Image
 
 PhotoImage = ImageTk.PhotoImage
-UNIT = 100  # 픽셀 수
-HEIGHT = 5  # 그리드월드 세로
-WIDTH = 5  # 그리드월드 가로
+UNIT = 100 # 픽셀 수
+HEIGHT = 5 # 그리드월드 세로
+WIDTH = 5 # 그리드월드 가로
 TRANSITION_PROB = 1
-POSSIBLE_ACTIONS = [0, 1, 2, 3]  # 좌, 우, 상, 하
-ACTIONS = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # 좌표로 나타낸 행동
+POSSIBLE_ACTIONS = [0,1,2,3] # 상, 하, 좌, 우
+ACTIONS = [(-1, 0), (1, 0), (0, -1), (0, 1)] # 좌표로 나타낸 행동
 REWARDS = []
 
-
-class GraphicDisplay(tk.Tk):
+class GraphicDisplay(tk.Tk) :
     def __init__(self, agent):
-        super(GraphicDisplay, self).__init__()
-        self.title('Policy Iteration')
+        super().__init__()
+        self.title('Value Iteration')
         self.geometry('{0}x{1}'.format(HEIGHT * UNIT, HEIGHT * UNIT + 50))
         self.texts = []
         self.arrows = []
         self.env = Env()
         self.agent = agent
-        self.evaluation_count = 0
-        self.improvement_count = 0
+        self.iter = 0
+        self.imp_cnt = 0
         self.is_moving = 0
         (self.up, self.down, self.left, self.right), self.shapes = self.load_images()
         self.canvas = self._build_canvas()
-        self.text_reward(2, 2, "R : 1.0")
-        self.text_reward(1, 2, "R : -1.0")
-        self.text_reward(2, 1, "R : -1.0")
 
     def _build_canvas(self):
         canvas = tk.Canvas(self, bg='white',
                            height=HEIGHT * UNIT,
                            width=WIDTH * UNIT)
-        # 버튼 초기화
-        iteration_button = Button(self, text="Evaluate",
-                                  command=self.evaluate_policy)
-        iteration_button.configure(width=10, activebackground="#33B5E5")
-        canvas.create_window(WIDTH * UNIT * 0.13, HEIGHT * UNIT + 10,
-                             window=iteration_button)
-        policy_button = Button(self, text="Improve",
-                               command=self.improve_policy)
-        policy_button.configure(width=10, activebackground="#33B5E5")
-        canvas.create_window(WIDTH * UNIT * 0.37, HEIGHT * UNIT + 10,
-                             window=policy_button)
-        policy_button = Button(self, text="move", command=self.move_by_policy)
-        policy_button.configure(width=10, activebackground="#33B5E5")
-        canvas.create_window(WIDTH * UNIT * 0.62, HEIGHT * UNIT + 10,
-                             window=policy_button)
-        policy_button = Button(self, text="reset", command=self.reset)
-        policy_button.configure(width=10, activebackground="#33B5E5")
-        canvas.create_window(WIDTH * UNIT * 0.87, HEIGHT * UNIT + 10,
-                             window=policy_button)
+
+        calc_btn = tk.Button(self, text='계산하기', command=self.calculate)
+        calc_btn.configure(width=10, activebackground='#33B5E5')
+        canvas.create_window(WIDTH * UNIT * 0.13, (HEIGHT * UNIT) + 10, window=calc_btn)
+
+        policy_btn = tk.Button(self, text='정책출력', command=self.print_optimal_policy)
+        policy_btn.configure(width=10, activebackground='#33B5E5')
+        canvas.create_window(WIDTH * UNIT * 0.37, (HEIGHT * UNIT) * 10, window=policy_btn)
+
+        move_btn = tk.Button(self, text='이동', command=self.move)
+        move_btn.configure(width=10, activebackground='#33B5E5')
+        canvas.create_window(WIDTH * UNIT * 0.62, (HEIGHT * UNIT) * 10, window=move_btn)
+
+        clear_btn = tk.Button(self, text='초기화', command=self.clear)
+        clear_btn.configure(width=10, activebackground='#33B5E5')
+        canvas.create_window(WIDTH * UNIT * 0.87, (HEIGHT * UNIT) * 10, window=clear_btn)
 
         # 그리드 생성
-        for col in range(0, WIDTH * UNIT, UNIT):  # 0~400 by 80
+        for col in range(0, WIDTH * UNIT, UNIT) :
             x0, y0, x1, y1 = col, 0, col, HEIGHT * UNIT
             canvas.create_line(x0, y0, x1, y1)
-        for row in range(0, HEIGHT * UNIT, UNIT):  # 0~400 by 80
+        for row in range(0, HEIGHT * UNIT, UNIT) :
             x0, y0, x1, y1 = 0, row, HEIGHT * UNIT, row
             canvas.create_line(x0, y0, x1, y1)
 
@@ -76,63 +69,68 @@ class GraphicDisplay(tk.Tk):
         return canvas
 
     def load_images(self):
+        PhotoImage = ImageTk.PhotoImage
         base_dir = os.path.dirname(__file__)
-        up = PhotoImage(Image.open(os.path.join(base_dir, "img/up.png")).resize((13, 13)))
-        right = PhotoImage(Image.open(os.path.join(base_dir, "img/right.png")).resize((13, 13)))
-        left = PhotoImage(Image.open(os.path.join(base_dir, "img/left.png")).resize((13, 13)))
-        down = PhotoImage(Image.open(os.path.join(base_dir, "img/down.png")).resize((13, 13)))
-        rectangle = PhotoImage(Image.open(os.path.join(base_dir, "img/rectangle.png")).resize((65, 65)))
-        triangle = PhotoImage(Image.open(os.path.join(base_dir, "img/triangle.png")).resize((65, 65)))
-        circle = PhotoImage(Image.open(os.path.join(base_dir, "img/circle.png")).resize((65, 65)))
+        up = PhotoImage(Image.open(os.path.join(base_dir, 'img/up.png')).resize((13,13)))
+        down = PhotoImage(Image.open(os.path.join(base_dir, 'img/down.png')).resize((13, 13)))
+        left = PhotoImage(Image.open(os.path.join(base_dir, 'img/left.png')).resize((13, 13)))
+        right = PhotoImage(Image.open(os.path.join(base_dir, 'img/right.png')).resize((13, 13)))
+
+        rectangle = PhotoImage(Image.open(os.path.join(base_dir, 'img/rectangle.png')).resize((65, 65)))
+        triangle = PhotoImage(Image.open(os.path.join(base_dir, 'img/triangle.png')).resize((65, 65)))
+        circle = PhotoImage(Image.open(os.path.join(base_dir, 'img/circle.png')).resize((65, 65)))
+
         return (up, down, left, right), (rectangle, triangle, circle)
 
-    def reset(self):
+    def clear(self):
+
         if self.is_moving == 0:
-            self.evaluation_count = 0
-            self.improvement_count = 0
-            for i in self.texts:
+            self.iter = 0
+            self.imp_cnt = 0
+            for i in self.texts :
+                self.canvas.delete(i)
+            for i in self.arrows :
                 self.canvas.delete(i)
 
-            for i in self.arrows:
-                self.canvas.delete(i)
-            self.agent.value_table = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
-            self.agent.policy_table = np.ones((HEIGHT, WIDTH, 4), dtype=np.float32) * 0.25
-            self.agent.policy_table[2][2] = None
+            self.agent.reset()
+
             x, y = self.canvas.coords(self.rectangle)
             self.canvas.move(self.rectangle, UNIT / 2 - x, UNIT / 2 - y)
 
-    def text_value(self, row, col, contents, font='Helvetica', size=10,
-                   style='normal', anchor="nw"):
+    def reset(self):
+        self.update()
+        time.sleep(0.5)
+        self.canvas.delete(self.rectangle)
+        return self.canvas.coords(self.rectangle)
+
+    def text_value(self, row, col, contents, font='Helvetica', size=12, style='normal', anchor='nw'):
         origin_x, origin_y = 85, 70
         x, y = origin_y + (UNIT * col), origin_x + (UNIT * row)
         font = (font, str(size), style)
-        text = self.canvas.create_text(x, y, fill="black", text=contents,
-                                       font=font, anchor=anchor)
+        text = self.canvas.create_text(x, y, fill='black', text=contents, font=font, anchor=anchor)
         return self.texts.append(text)
 
-    def text_reward(self, row, col, contents, font='Helvetica', size=10,
-                    style='normal', anchor="nw"):
-        origin_x, origin_y = 5, 5
+    def text_reward(self, row, col, contents, font='Helvetica', size=12, style='normal', anchor='nw'):
+        origin_x, origin_y = 5,5
         x, y = origin_y + (UNIT * col), origin_x + (UNIT * row)
         font = (font, str(size), style)
-        text = self.canvas.create_text(x, y, fill="black", text=contents,
-                                       font=font, anchor=anchor)
+        text = self.canvas.creete_text(x, y, fill='black', text=contents, font=font, anchor=anchor)
         return self.texts.append(text)
 
-    def rectangle_move(self, action):
-        base_action = np.array([0, 0])
+    def rectangle_move(self, action) :
+        base_action = np.array([0,0])
         location = self.find_rectangle()
         self.render()
-        if action == 0 and location[0] > 0:  # 상
+        if action == 0 and location[0] > 0 : # up
             base_action[1] -= UNIT
-        elif action == 1 and location[0] < HEIGHT - 1:  # 하
+        elif action == 1 and location[0] < HEIGHT - 1 : # down
             base_action[1] += UNIT
-        elif action == 2 and location[1] > 0:  # 좌
+        elif action == 2 and location[1] > 0 : # left
             base_action[0] -= UNIT
-        elif action == 3 and location[1] < WIDTH - 1:  # 우
+        elif action == 3 and location[1] < WIDTH - 1 : # right
             base_action[0] += UNIT
-        # move agent
-        self.canvas.move(self.rectangle, base_action[0], base_action[1])
+
+        self.canvas.move(self.rectangle, base_action[0], base_action[1]) # move agent
 
     def find_rectangle(self):
         temp = self.canvas.coords(self.rectangle)
@@ -140,90 +138,84 @@ class GraphicDisplay(tk.Tk):
         y = (temp[1] / 100) - 0.5
         return int(y), int(x)
 
-    def move_by_policy(self):
-        if self.improvement_count != 0 and self.is_moving != 1:
+    def move(self):
+        if self.imp_cnt != 0 and self.is_moving != 1 :
             self.is_moving = 1
-
             x, y = self.canvas.coords(self.rectangle)
             self.canvas.move(self.rectangle, UNIT / 2 - x, UNIT / 2 - y)
 
             x, y = self.find_rectangle()
-            while not np.isnan(self.agent.policy_table[x, y]).sum() :
-                self.after(100, self.rectangle_move(self.agent.get_action([x, y])))
+            while len(self.agent.get_action([x, y])) != 0 :
+                action = random.sample(self.agent.get_action([x, y]), 1)[0]
+                self.after(100, self.rectangle_move(action))
                 x, y = self.find_rectangle()
             self.is_moving = 0
 
-    def draw_one_arrow(self, col, row, policy):
+    def draw_one_arrow(self, col, row, action):
         if col == 2 and row == 2:
             return
-
-        if policy[0] > 0:  # up
+        if action == 0 : # up
             origin_x, origin_y = 50 + (UNIT * row), 10 + (UNIT * col)
-            self.arrows.append(self.canvas.create_image(origin_x, origin_y,
-                                                        image=self.up))
-        if policy[1] > 0:  # down
+            self.arrows.append(self.canvas.create_image(origin_x, origin_y, image=self.up))
+
+        elif action == 1 : # down
             origin_x, origin_y = 50 + (UNIT * row), 90 + (UNIT * col)
-            self.arrows.append(self.canvas.create_image(origin_x, origin_y,
-                                                        image=self.down))
-        if policy[2] > 0:  # left
-            origin_x, origin_y = 10 + (UNIT * row), 50 + (UNIT * col)
-            self.arrows.append(self.canvas.create_image(origin_x, origin_y,
-                                                        image=self.left))
-        if policy[3] > 0:  # right
+            self.arrows.append(self.canvas.create_image(origin_x, origin_y, image=self.down))
+
+        elif action == 2 : # right
             origin_x, origin_y = 90 + (UNIT * row), 50 + (UNIT * col)
-            self.arrows.append(self.canvas.create_image(origin_x, origin_y,
-                                                        image=self.right))
+            self.arrows.append(self.canvas.create_image(origin_x, origin_y, image=self.right))
 
-    def draw_from_policy(self, policy_table):
-        for i in range(HEIGHT):
-            for j in range(WIDTH):
-                self.draw_one_arrow(i, j, policy_table[i][j])
+        elif action == 3:  # left
+            origin_x, origin_y = 10 + (UNIT * row), 50 + (UNIT * col)
+            self.arrows.append(self.canvas.create_image(origin_x, origin_y, image=self.left))
 
-    def print_value_table(self, value_table):
-        for i in range(WIDTH):
-            for j in range(HEIGHT):
-                self.text_value(i, j, value_table[i][j])
+    def draw_from_values(self, state, action_list):
+        for action in action_list :
+            self.draw_one_arrow(*state, action)
+
+    def print_values(self, values):
+        for i in range(WIDTH) :
+            for j in range(HEIGHT) :
+                self.text_value(i, j, round(values[i][j], 2))
 
     def render(self):
         time.sleep(0.1)
         self.canvas.tag_raise(self.rectangle)
         self.update()
 
-    def evaluate_policy(self):
-        self.evaluation_count += 1
-        for i in self.texts:
+    def calculate(self):
+        self.iter += 1
+        for i in self.texts :
             self.canvas.delete(i)
-        self.agent.policy_evaluation()
-        self.print_value_table(self.agent.value_table)
+        self.agent.develop()
+        self.print_values(self.agent.value_table)
 
-    def improve_policy(self):
-        self.improvement_count += 1
-        for i in self.arrows:
+    def print_optimal_policy(self):
+        self.imp_cnt += 1
+        for i in self.arrows :
             self.canvas.delete(i)
-        self.agent.policy_improvement()
-        self.draw_from_policy(self.agent.policy_table)
+        for state in self.env.get_all_states() :
+            action = self.agent.get_action(state)
+            self.draw_from_values(state, action)
 
 
-class Env:
+
+class Env :
     def __init__(self):
-        self.transition_probability = TRANSITION_PROB
+        self.trans_prob = TRANSITION_PROB
         self.width = WIDTH
         self.height = HEIGHT
-        self.reward = [[0] * WIDTH for _ in range(HEIGHT)]
+        self.reward = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
         self.possible_actions = POSSIBLE_ACTIONS
-        self.reward[2][2] = 1  # (2,2) 좌표 동그라미 위치에 보상 1
-        self.reward[1][2] = -1  # (1,2) 좌표 세모 위치에 보상 -1
-        self.reward[2][1] = -1  # (2,1) 좌표 세모 위치에 보상 -1
-        self.all_state = []
-
-        for x in range(WIDTH):
-            for y in range(HEIGHT):
-                state = [x, y]
-                self.all_state.append(state)
+        self.reward[2, 2] = 1  # reward 1 for circle
+        self.reward[1, 2] = -1  # reward -1 for triangle
+        self.reward[2, 1] = -1  # reward -1 for triangle
+        self.all_state = [[x, y] for y in range(HEIGHT) for x in range(WIDTH)]
 
     def get_reward(self, state, action):
         next_state = self.state_after_action(state, action)
-        return self.reward[next_state[0]][next_state[1]]
+        return self.reward[next_state[0], next_state[1]]
 
     def state_after_action(self, state, action_index):
         action = ACTIONS[action_index]
@@ -232,13 +224,15 @@ class Env:
     @staticmethod
     def check_boundary(state):
         state[0] = (0 if state[0] < 0 else WIDTH - 1
-                    if state[0] > WIDTH - 1 else state[0])
+                        if state[0] > WIDTH - 1 else state[0])
+
         state[1] = (0 if state[1] < 0 else HEIGHT - 1
-                    if state[1] > HEIGHT - 1 else state[1])
+                        if state[1] > HEIGHT - 1 else state[1])
+
         return state
 
     def get_transition_prob(self, state, action):
-        return self.transition_probability
+        return self.trans_prob
 
     def get_all_states(self):
         return self.all_state
