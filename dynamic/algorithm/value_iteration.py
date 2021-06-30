@@ -1,5 +1,5 @@
 import numpy as np
-from environment import Env, GraphicDisplay
+from dynamic.algorithm.env.vi_env import Env, GraphicDisplay
 
 class ValueIteration :
 

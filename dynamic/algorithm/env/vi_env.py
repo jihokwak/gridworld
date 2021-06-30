@@ -34,19 +34,19 @@ class GraphicDisplay(tk.Tk) :
                            height=HEIGHT * UNIT,
                            width=WIDTH * UNIT)
 
-        calc_btn = tk.Button(self, text='계산하기', command=self.calculate)
+        calc_btn = tk.Button(self, text='Calculate', command=self.calculate)
         calc_btn.configure(width=10, activebackground='#33B5E5')
         canvas.create_window(WIDTH * UNIT * 0.13, (HEIGHT * UNIT) + 10, window=calc_btn)
 
-        policy_btn = tk.Button(self, text='정책출력', command=self.print_optimal_policy)
+        policy_btn = tk.Button(self, text='Print', command=self.print_optimal_policy)
         policy_btn.configure(width=10, activebackground='#33B5E5')
         canvas.create_window(WIDTH * UNIT * 0.37, (HEIGHT * UNIT) * 10, window=policy_btn)
 
-        move_btn = tk.Button(self, text='이동', command=self.move)
+        move_btn = tk.Button(self, text='Move', command=self.move)
         move_btn.configure(width=10, activebackground='#33B5E5')
         canvas.create_window(WIDTH * UNIT * 0.62, (HEIGHT * UNIT) * 10, window=move_btn)
 
-        clear_btn = tk.Button(self, text='초기화', command=self.clear)
+        clear_btn = tk.Button(self, text='Clear', command=self.clear)
         clear_btn.configure(width=10, activebackground='#33B5E5')
         canvas.create_window(WIDTH * UNIT * 0.87, (HEIGHT * UNIT) * 10, window=clear_btn)
 
@@ -71,7 +71,7 @@ class GraphicDisplay(tk.Tk) :
     def load_images(self):
         PhotoImage = ImageTk.PhotoImage
         base_dir = os.path.dirname(__file__)
-        up = PhotoImage(Image.open(os.path.join(base_dir, 'img/up.png')).resize((13,13)))
+        up = PhotoImage(Image.open(os.path.join(base_dir, 'img/up.png')).resize((13, 13)))
         down = PhotoImage(Image.open(os.path.join(base_dir, 'img/down.png')).resize((13, 13)))
         left = PhotoImage(Image.open(os.path.join(base_dir, 'img/left.png')).resize((13, 13)))
         right = PhotoImage(Image.open(os.path.join(base_dir, 'img/right.png')).resize((13, 13)))
