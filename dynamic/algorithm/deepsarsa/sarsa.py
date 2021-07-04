@@ -1,6 +1,6 @@
 import numpy as np
 from collections import defaultdict
-from dynamic.algorithm.env.sarsa_env import Env
+from dynamic.algorithm.deepsarsa.env.sarsa_env import Env
 
 class SARSAgent:
     def __init__(self,actions: list):
