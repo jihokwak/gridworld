@@ -8,6 +8,8 @@ from tensorflow.keras.layers import Dense
 from tensorflow.keras.initializers import RandomUniform
 from tensorflow.keras.optimizers import Adam
 
+BASE_DIR = os.path.abspath(__file__)
+
 class A2C(tf.keras.Model) :
     def __init__(self, action_size):
         super().__init__()
@@ -120,11 +122,11 @@ if __name__ == '__main__':
                 plt.plot(episodes, scores, 'b')
                 plt.xlabel('episode')
                 plt.ylabel('average score')
-                os.makedirs("./save_graph", exist_ok=True)
-                plt.savefig('./save_graph/graph.png')
+                os.makedirs(os.path.join(BASE_DIR,"./save_graph"), exist_ok=True)
+                plt.savefig(os.path.join(BASE_DIR,'./save_graph/graph.png'))
 
                 #이동평균이 400이상일 때 종료
                 if score_avg > 400:
-                    os.makedirs("./save_model", exist_ok=True)
-                    agent.model.save_weights('./save_model/model', save_format='tf')
+                    os.makedirs(os.path.join(BASE_DIR,"./save_model"), exist_ok=True)
+                    agent.model.save_weights(os.path.join(BASE_DIR,'./save_model/model'), save_format='tf')
                     sys.exit()
